@@ -92,7 +92,6 @@
     - OS::TripleO::Services::DesignateWorker
     - OS::TripleO::Services::DesignateMDNS
     - OS::TripleO::Services::DesignateSink
-    - OS::TripleO::Services::DesignateBind
     - OS::TripleO::Services::Etcd
     - OS::TripleO::Services::ExternalSwiftProxy
     - OS::TripleO::Services::Frr
@@ -249,7 +248,8 @@
     - OS::TripleO::Services::NeutronVppAgent
     - OS::TripleO::Services::NovaAZConfig
     - OS::TripleO::Services::NovaCompute
-    - OS::TripleO::Services::NovaLibvirt
+    - OS::TripleO::Services::NovaModularLibvirt
+    #- OS::TripleO::Services::NovaLibvirt
     - OS::TripleO::Services::NovaLibvirtGuests
     - OS::TripleO::Services::NovaMigrationTarget
     - OS::TripleO::Services::ContainersLogrotateCrond

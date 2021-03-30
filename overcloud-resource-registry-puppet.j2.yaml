@@ -187,6 +187,7 @@ resource_registry:
   OS::TripleO::Services::NovaCompute: deployment/nova/nova-compute-container-puppet.yaml
   OS::TripleO::Services::NovaConductor: deployment/nova/nova-conductor-container-puppet.yaml
   OS::TripleO::Services::NovaLibvirt: deployment/nova/nova-libvirt-container-puppet.yaml
+  OS::TripleO::Services::NovaModularLibvirt: deployment/nova/nova-modular-libvirt-container-puppet.yaml
   OS::TripleO::Services::NovaLibvirtGuests: deployment/nova/nova-libvirt-guests-container-puppet.yaml
   OS::TripleO::Services::NovaManager: deployment/nova/nova-manager-container-puppet.yaml
   OS::TripleO::Services::NovaMetadata: deployment/nova/nova-metadata-container-puppet.yaml
@@ -223,7 +224,6 @@ resource_registry:
   OS::TripleO::Services::Chrony: deployment/timesync/chrony-baremetal-ansible.yaml
   OS::TripleO::Services::Ptp: OS::Heat::None
   OS::TripleO::Services::Timesync: OS::TripleO::Services::Chrony
-  OS::TripleO::Services::TimeMaster: deployment/timemaster/timemaster-baremetal-ansible.yaml
 
 
   # Services that are disabled by default (use relevant environment files):
@@ -320,7 +320,6 @@ resource_registry:
   OS::TripleO::Services::DesignateWorker: OS::Heat::None
   OS::TripleO::Services::DesignateMDNS: OS::Heat::None
   OS::TripleO::Services::DesignateSink: OS::Heat::None
-  OS::TripleO::Services::DesignateBind: OS::Heat::None
   OS::TripleO::Services::NeutronMl2PluginBase: deployment/neutron/neutron-plugin-ml2-ovn.yaml
   OS::TripleO::Services::Multipathd: OS::Heat::None
   OS::TripleO::Services::GlanceApiEdge: OS::Heat::None

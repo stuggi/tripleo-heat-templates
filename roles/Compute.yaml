@@ -59,7 +59,7 @@
     - OS::TripleO::Services::NeutronVppAgent
     - OS::TripleO::Services::NovaAZConfig
     - OS::TripleO::Services::NovaCompute
-    - OS::TripleO::Services::NovaLibvirt
+    - OS::TripleO::Services::NovaModularLibvirt
     - OS::TripleO::Services::NovaLibvirtGuests
     - OS::TripleO::Services::NovaMigrationTarget
     - OS::TripleO::Services::ContainersLogrotateCrond

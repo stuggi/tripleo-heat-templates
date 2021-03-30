@@ -1,0 +1,190 @@
+heat_template_version: rocky
+
+description: >
+  Contains a static list of common things necessary for containers
+
+parameters:
+
+  EndpointMap:
+    default: {}
+    description: Mapping of service endpoint -> protocol. Typically set
+                 via parameter_defaults in the resource registry.
+    type: json
+  ServiceData:
+    default: {}
+    description: Dictionary packing service data
+    type: json
+  ServiceNetMap:
+    default: {}
+    description: Mapping of service_name -> network name. Typically set
+                 via parameter_defaults in the resource registry.  This
+                 mapping overrides those in ServiceNetMapDefaults.
+    type: json
+  RoleName:
+    default: ''
+    description: Role name on which the service is applied
+    type: string
+  RoleParameters:
+    default: {}
+    description: Parameters specific to the role
+    type: json
+  EnableInternalTLS:
+    type: boolean
+    default: false
+  InternalTLSCAFile:
+    default: '/etc/ipa/ca.crt'
+    type: string
+    description: Specifies the default CA cert to use if TLS is used for
+                 services in the internal network.
+  LibvirtCACert:
+    type: string
+    default: ''
+    description: This specifies the CA certificate to use for TLS in libvirt.
+                 This file will be symlinked to the default CA path in libvirt,
+                 which is /etc/pki/CA/cacert.pem. Note that due to limitations
+                 GNU TLS, which is the TLS backend for libvirt, the file must
+                 be less than 65K (so we can't use the system's CA bundle).
+                 This parameter should be used if the default (which comes from
+                 the InternalTLSCAFile parameter) is not desired. The current
+                 default reflects TripleO's default CA, which is FreeIPA.
+                 It will only be used if internal TLS is enabled.
+  InternalTLSNbdCAFile:
+    default: '/etc/ipa/ca.crt'
+    type: string
+    description: Specifies the CA cert to use for NBD TLS.
+  LibvirtNbdCACert:
+    type: string
+    default: ''
+    description: This specifies the CA certificate to use for NBD TLS.
+                 This file will be symlinked to the default CA path,
+                 which is /etc/pki/libvirt-nbd/ca-cert.pem.
+                 This parameter should be used if the default (which comes from
+                 the InternalTLSNbdCAFile parameter) is not desired. The current
+                 default reflects TripleO's default CA, which is FreeIPA.
+                 It will only be used if internal TLS is enabled.
+  UseTLSTransportForLiveMigration:
+    type: boolean
+    default: true
+    description: If set to true and if EnableInternalTLS is enabled, it will
+                 set the libvirt URI's transport to tls and configure the
+                 relevant keys for libvirt.
+  CephClientUserName:
+    default: openstack
+    type: string
+  CephClusterName:
+    type: string
+    default: ceph
+    description: The Ceph cluster name.
+    constraints:
+    - allowed_pattern: "[a-zA-Z0-9]+"
+      description: >
+        The Ceph cluster name must be at least 1 character and contain only
+  CephConfigPath:
+    type: string
+    default: "/var/lib/tripleo-config/ceph"
+    description: |
+      The path where the Ceph Cluster config files are stored on the host.
+
+conditions:
+  use_tls_for_live_migration:
+    and:
+    - equals:
+      - {get_param: EnableInternalTLS}
+      - true
+    - equals:
+      - {get_param: UseTLSTransportForLiveMigration}
+      - true
+
+  libvirt_specific_ca_unset:
+    equals:
+      - {get_param: LibvirtCACert}
+      - ''
+
+  libvirt_nbd_specific_ca_unset:
+    equals:
+      - {get_param: LibvirtNbdCACert}
+      - ''
+
+outputs:
+  kolla_config_files:
+    description: Common kolla config_files.
+    value:
+      list_concat:
+        -
+          - source: "/var/lib/kolla/config_files/src/*"
+            dest: "/"
+            merge: true
+            preserve_properties: true
+          - source: "/var/lib/kolla/config_files/src-tls/*"
+            dest: "/"
+            merge: true
+            preserve_properties: true
+            optional: true
+          - source: "/var/lib/kolla/config_files/src-ceph/"
+            dest: "/etc/ceph/"
+            merge: true
+            preserve_properties: true
+
+  kolla_permissions:
+    description: Common kolla permissions.
+    value:
+      list_concat:
+        -
+          - path:
+              str_replace:
+                template: /etc/ceph/CLUSTER.client.USER.keyring
+                params:
+                  CLUSTER: {get_param: CephClusterName}
+                  USER: {get_param: CephClientUserName}
+            owner: nova:nova
+            perm: '0600'
+
+  volumes:
+    description: Common volumes for all moduler virt daemons.
+    value:
+      list_concat:
+        -
+          - /lib/modules:/lib/modules:ro
+          - /dev:/dev
+          - /run:/run
+          - /sys/fs/cgroup:/sys/fs/cgroup
+          - /sys/fs/selinux:/sys/fs/selinux
+          - /etc/selinux/config:/etc/selinux/config:ro
+          - /etc/libvirt:/etc/libvirt:shared
+          - /etc/ssh/ssh_known_hosts:/etc/ssh/ssh_known_hosts:ro
+          - /run/libvirt:/run/libvirt:shared
+          - /var/lib/nova:/var/lib/nova:shared
+          - /var/lib/libvirt:/var/lib/libvirt:shared
+          - /var/cache/libvirt:/var/cache/libvirt:shared
+          - /var/lib/vhost_sockets:/var/lib/vhost_sockets
+          - list_join:
+            - ':'
+            - - {get_param: CephConfigPath}
+            - - '/var/lib/kolla/config_files/src-ceph'
+            - - 'ro'
+        -
+          if:
+            - use_tls_for_live_migration
+            -
+              - /etc/pki/libvirt:/etc/pki/libvirt/:ro
+              - /etc/pki/libvirt-nbd:/etc/pki/libvirt-nbd:ro
+              - str_replace:
+                  template: "CACERT:/etc/pki/CA/cacert.pem:ro"
+                  params:
+                    CACERT:
+                      if:
+                        - libvirt_specific_ca_unset
+                        - get_param: InternalTLSCAFile
+                        - get_param: LibvirtCACert
+              - str_replace:
+                  template: "CACERT:/etc/pki/qemu/ca-cert.pem:ro"
+                  params:
+                    CACERT:
+                      if:
+                        - libvirt_nbd_specific_ca_unset
+                        - get_param: InternalTLSNbdCAFile
+                        - get_param: LibvirtNbdCACert
+              - /etc/pki/qemu/server-cert.pem:/etc/pki/qemu/server-cert.pem:ro
+              - /etc/pki/qemu/server-key.pem:/etc/pki/qemu/server-key.pem:ro
+            - null
+
